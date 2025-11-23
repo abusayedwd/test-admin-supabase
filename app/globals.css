@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  /* DeenHub theme: emerald + slate (ensure strong dark text on light bg) */
+  --background: 210 20% 98%; /* near-white */
+  --foreground: 0 0% 0%; /* pure black text */
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --primary: 160 84% 39%; /* emerald-500 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%; /* slate-100 */
+  --secondary-foreground: 0 0% 0%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 0 0% 0%;
+  --accent: 160 84% 39% / 0.08;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --input-foreground: 0 0% 0%;
+  --ring: 160 84% 39%;
+  --radius: 0.75rem;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: 215 25% 10%;
+    --foreground: 210 25% 98%;
+    --card: 217 33% 15%;
+    --card-foreground: 210 25% 98%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 28% 17%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 25% 16%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 160 84% 39% / 0.25;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 217 19% 27%;
+    --input: 217 19% 27%;
+    --ring: 160 84% 39%;
+  }
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Form controls */
+input, select, textarea {
+  background: white;
+  color: hsl(var(--input-foreground));
+}
+
+.card-muted {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
