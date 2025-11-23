@@ -5,7 +5,6 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Card } from '@/app/components/ui/card';
 import { X, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { CreateQuranRequestData } from '@/lib/types/quran-requests';
 
 interface AddQuranRequestDialogProps {
@@ -32,8 +31,6 @@ export default function AddQuranRequestDialog({
     reason: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const supabase = createClient();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -82,18 +79,20 @@ export default function AddQuranRequestDialog({
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('free_quran_requests')
-        .insert([{
+      const response = await fetch('/api/admin/quran-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           ...formData,
-          status: 'requested',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }]);
+          status: 'requested'
+        }),
+      });
 
-      if (error) {
-        console.error('Error creating request:', error);
-        setErrors({ submit: 'Failed to create request. Please try again.' });
+      if (!response.ok) {
+        const error = await response.json();
+        setErrors({ submit: error.error || 'Failed to create request. Please try again.' });
         return;
       }
 
@@ -321,4 +320,4 @@ export default function AddQuranRequestDialog({
       </Card>
     </div>
   );
-} 
+}
