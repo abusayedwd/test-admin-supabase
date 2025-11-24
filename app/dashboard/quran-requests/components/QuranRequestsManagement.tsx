@@ -13,6 +13,9 @@ import AddQuranRequestDialog from './AddQuranRequestDialog';
 
 export default function QuranRequestsManagement() {
   const [requests, setRequests] = useState<QuranRequest[]>([]);
+ 
+  console.log(requests);
+
   const [stats, setStats] = useState<QuranRequestStats>({
     total: 0,
     requested: 0,
@@ -197,6 +200,7 @@ export default function QuranRequestsManagement() {
       <QuranRequestsStatsCards stats={stats} />
 
       {/* Actions Bar */}
+
       <Card className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -223,6 +227,7 @@ export default function QuranRequestsManagement() {
                   onClick={() => handleBulkAction('mark_sent')}
                 >
                   Mark Sent
+
                 </Button>
                 <Button
                   variant="outline"
@@ -230,6 +235,7 @@ export default function QuranRequestsManagement() {
                   onClick={() => handleBulkAction('mark_delivered')}
                 >
                   Mark Delivered
+
                 </Button>
               </div>
             )}
@@ -257,6 +263,7 @@ export default function QuranRequestsManagement() {
       </Card>
 
       {/* Filters */}
+      
       <QuranRequestFiltersPanel
         filters={filters}
         onFiltersChange={setFilters}
