@@ -94,9 +94,24 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Get the current user data to check if status is changing to suspended
+    const { data: currentUser, error: fetchError } = await adminClient
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', user_id)
+      .single()
+
+    if (fetchError) {
+      console.error('Error fetching user:', fetchError)
+      return NextResponse.json(
+        { error: 'Failed to fetch user' },
+        { status: 500 }
+      )
+    }
+
     // Calculate subscription expiry for monthly subscriptions
     let dataToUpdate: any = { ...updateData }
-    
+
     if (updateData.subscription_status && updateData.subscription_status !== 'free') {
       dataToUpdate.has_subscription = true
       // Set monthly subscription expiry (30 days from now)
@@ -121,6 +136,35 @@ export async function PUT(request: NextRequest) {
         { error: 'Failed to update user' },
         { status: 500 }
       )
+    }
+
+    // Check if the user is being suspended and send notification
+    if (dataToUpdate.subscription_status === 'expired' && currentUser?.subscription_status !== 'expired') {
+      // Trigger the suspension notification
+      try {
+        // Get the current admin user ID (this would come from the session in a real implementation)
+        // For now, we'll use a placeholder admin ID
+        const adminSession = await adminClient.auth.getUser();
+        const adminId = adminSession?.data?.user?.id || 'system'; // In a real scenario, get the actual admin ID
+
+        const suspensionPayload = {
+          user_id: user_id,
+          admin_id: adminId,
+          reason: updateData.suspension_reason || 'Account suspended by admin'
+        };
+
+        // Call the API to send the suspension notification
+        await fetch('/api/send-suspension-notification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(suspensionPayload),
+        });
+      } catch (notificationError) {
+        console.error('Failed to send suspension notification:', notificationError);
+        // Don't fail the entire request if notification fails
+      }
     }
 
     return NextResponse.json({

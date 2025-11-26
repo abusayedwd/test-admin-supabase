@@ -46,7 +46,7 @@ export default function UserActions({ user, onUserUpdate, onDelete }: UserAction
     }
   }
 
-  const handleSuspendUser = async () => {
+    const handleSuspendUser = async () => {
     setLoading(true)
     try {
       // In Supabase, we can update user's status by changing their role or by managing a flag in our user_profiles table
@@ -80,6 +80,50 @@ export default function UserActions({ user, onUserUpdate, onDelete }: UserAction
       setLoading(false)
     }
   }
+
+  // const handleSuspendUser = async () => {
+  //   // Prompt for suspension reason
+  //   const reason = prompt('Enter the reason for suspending this user:');
+
+  //   if (!reason) {
+  //     alert('A reason is required to suspend a user.');
+  //     return;
+  //   }
+
+  //   setLoading(true)
+  //   try {
+  //     // In Supabase, we can update user's status by changing their role or by managing a flag in our user_profiles table
+  //     // Here we'll update their subscription status to 'expired' and set has_subscription to false
+  //     const response = await fetch('/api/admin/users', {
+  //       method: 'PUT',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         user_id: user.user_id,
+  //         subscription_status: 'expired',
+  //         has_subscription: false,
+  //         subscription_expiry: null,
+  //         suspension_reason: reason, // This will be stored for reference
+  //       }),
+  //     })
+
+  //     const result = await response.json()
+
+  //     if (result.success) {
+  //       onUserUpdate(result.user)
+  //       setIsOpen(false)
+  //     } else {
+  //       console.error('Failed to suspend user:', result.error)
+  //       alert('Failed to suspend user. Please try again.')
+  //     }
+  //   } catch (error) {
+  //     console.error('Error suspending user:', error)
+  //     alert('Failed to suspend user. Please try again.')
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
   const handleDeleteUser = async () => {
     if (confirm(`Are you sure you want to delete ${user.full_name || user.email}? This action cannot be undone.`)) {
