@@ -302,7 +302,7 @@ import AddQuranRequestDialog from "./AddQuranRequestDialog";
 import QuranRequestFiltersPanel from "./QuranRequestFiltersPanel";
 import QuranRequestsStatsCards from "./QuranRequestsStatsCards";
 import QuranRequestsTable from "./QuranRequestsTable";
-import toast, { Toaster } from "react-hot-toast";
+ import toast, { Toaster } from 'react-hot-toast';
 export default function QuranRequestsManagement() {
   const [requests, setRequests] = useState<QuranRequest[]>([]);
  

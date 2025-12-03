@@ -397,7 +397,7 @@ export default function QuranRequestsTable({
               
               <TableCell>
               
-              <span>{request?.tracking_number || 'Not assigned'}</span>
+              <span>{request?.admin_notes || 'Not assigned'}</span>
               </TableCell>
               
               <TableCell>
@@ -469,22 +469,10 @@ export default function QuranRequestsTable({
             <h3 className="text-lg font-semibold mb-4">Edit Request Details</h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tracking Number
-                </label>
-                <input
-                  type="text"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="Enter tracking number..."
-                  className="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
-                />
-              </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Notes
+                  Admin Notes/Tracking 
                 </label>
                 <textarea
                   value={noteValue}
