@@ -43,7 +43,7 @@ export default function UsersManagement() {
   })
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 100,
     total: 0,
     totalPages: 0
   })

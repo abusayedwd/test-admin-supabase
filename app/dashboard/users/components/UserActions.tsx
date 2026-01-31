@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/app/components/ui/button'
-import { MoreHorizontal, Edit, Trash2, Crown, Ban, UserCheck, AlertTriangle, CheckCircle } from 'lucide-react'
+import { MoreHorizontal, Edit, Trash2, Crown, Ban, UserCheck, AlertTriangle, CheckCircle, Bell } from 'lucide-react'
 import EditUserDialog from './EditUserDialog';
 import type { UserProfile } from '@/lib/types/users'
 
@@ -32,6 +32,9 @@ export default function UserActions({ user, onUserUpdate, onDelete }: UserAction
       const result = await response.json()
 
       if (result.success) {
+        // Send notification to the user about their subscription change
+        await sendSubscriptionNotification(user.user_id, newStatus);
+
         onUserUpdate(result.user)
         setIsOpen(false)
       } else {
@@ -43,6 +46,86 @@ export default function UserActions({ user, onUserUpdate, onDelete }: UserAction
       alert('Failed to update subscription. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const sendSubscriptionNotification = async (userId: string, newStatus: string) => {
+   try {
+    // Get user's FCM token from the database
+    const tokenResponse = await fetch(`/api/get-user-token?user_id=${userId}`);
+
+    if (!tokenResponse.ok) {
+      console.error('Failed to fetch user token:', tokenResponse.status, tokenResponse.statusText);
+      return;
+    }
+
+    const tokenResult = await tokenResponse.json();
+
+    if (!tokenResult.success || !tokenResult.token) {
+      console.warn(`User ${userId} does not have an FCM token registered. Notification will not be sent.`);
+      // Still consider this a success since the subscription update worked
+      // Just inform the admin that the notification couldn't be sent
+      return;
+    }
+
+      // Prepare notification based on subscription change
+      let title = '';
+      let body = '';
+
+      switch(newStatus) {
+        case 'deenhub_pro':
+          title = '🎉 Subscription Upgraded!';
+          body = 'Congratulations! Your subscription has been upgraded to DeenHub Pro. Enjoy premium features.';
+          break;
+        case 'quran_lite':
+          title = '✨ Subscription Updated';
+          body = 'Your subscription has been updated to Quran Lite. Enjoy enhanced features.';
+          break;
+        case 'barakah_access':
+          title = '✨ Subscription Updated';
+          body = 'Your subscription has been updated to Barakah Access. Enjoy exclusive content.';
+          break;
+        case 'free':
+          title = '🔄 Subscription Changed';
+          body = 'Your subscription has been changed to Free tier. Some features may be limited.';
+          break;
+        case 'expired':
+          title = '⚠️ Subscription Expired';
+          body = 'Your subscription has expired. Please renew to continue enjoying premium features.';
+          break;
+        default:
+          title = '📋 Subscription Updated';
+          body = 'Your subscription status has been updated.';
+      }
+
+      // Send notification via FCM
+      const notificationResponse = await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          body,
+          target: 'single',
+          token: tokenResult.token,
+        }),
+      });
+
+      if (!notificationResponse.ok) {
+        console.error('Failed to send notification:', notificationResponse.status, notificationResponse.statusText);
+        return;
+      }
+
+      const notificationResult = await notificationResponse.json();
+
+      if (!notificationResult.success) {
+        console.error('Failed to send notification:', notificationResult.error);
+      } else {
+        console.log('Notification sent successfully to user:', userId);
+      }
+    } catch (error) {
+      console.error('Error sending subscription notification:', error);
     }
   }
 

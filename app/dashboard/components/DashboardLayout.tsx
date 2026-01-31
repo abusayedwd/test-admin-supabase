@@ -14,7 +14,8 @@ import {
   MapPin, 
   LogOut,
   Menu,
-  X
+  X,
+  AlarmClock
 } from 'lucide-react'
 import { signOutClient } from '@/lib/auth-client'
 
@@ -49,6 +50,11 @@ const navigationItems = [
     name: 'Mosques',
     href: '/dashboard/mosques',
     icon: MapPin,
+  },
+  {
+    name: 'Send Push Notification',
+    href: '/dashboard/notifications',
+    icon: AlarmClock,
   },
 ]
 
