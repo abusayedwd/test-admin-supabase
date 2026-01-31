@@ -7,7 +7,7 @@ import AuthWrapper from '@/components/AuthWrapper';
 
 export default function NotificationsPage() {
   return (
-    <div className="container mx-auto">
+    <div className="">
           <AuthWrapper requireAdmin>
             {({ user, adminUser }) => (
               <DashboardLayout user={user} adminUser={adminUser}>

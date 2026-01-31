@@ -1,9 +1,3 @@
- 
-
-
-
- 
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -43,7 +37,7 @@ export default function UsersManagement() {
   })
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 100,
+    limit: 10, // Set to 10 items per page
     total: 0,
     totalPages: 0
   })
@@ -65,7 +59,7 @@ export default function UsersManagement() {
       try {
         const params = new URLSearchParams()
         params.set('page', pagination.page.toString())
-        params.set('limit', pagination.limit.toString())
+        params.set('limit', '10') // Explicitly set limit to 10
 
         if (filters.search) params.set('search', filters.search)
         if (filters.subscription_status && filters.subscription_status !== 'all') {
@@ -73,6 +67,8 @@ export default function UsersManagement() {
         }
         if (filters.sort_by) params.set('sort_by', filters.sort_by)
         if (filters.sort_order) params.set('sort_order', filters.sort_order)
+
+        console.log('Fetching users with params:', params.toString())
 
         const response = await fetch(`/api/admin/users?${params.toString()}`)
 
@@ -83,6 +79,7 @@ export default function UsersManagement() {
         const data = await response.json()
         console.log('Fetched data:', data)
         console.log('Pagination:', data.pagination)
+        
         setUsers(data.users || [])
         setStats(data.stats || {
           total_users: 0,
@@ -94,13 +91,22 @@ export default function UsersManagement() {
           active_users_last_30_days: 0
         })
 
-        // Set pagination data from API response
+        // FIX: Use stats.total_users as fallback if pagination.total is 0
         if (data.pagination) {
-          setPagination({
-            page: data.pagination.page || 1,
-            limit: data.pagination.limit || 10,
-            total: data.pagination.total || 0,
-            totalPages: data.pagination.totalPages || Math.ceil((data.pagination.total || 0) / (data.pagination.limit || 10))
+          const actualTotal = data.pagination.total || data.stats?.total_users || 0
+          const totalPages = Math.ceil(actualTotal / 10)
+          
+          setPagination(prev => ({
+            ...prev,
+            total: actualTotal,
+            totalPages: totalPages
+          }))
+          
+          console.log('Updated pagination:', {
+            page: pagination.page,
+            limit: 10,
+            total: actualTotal,
+            totalPages: totalPages
           })
         }
       } catch (error) {
@@ -112,24 +118,22 @@ export default function UsersManagement() {
     }
 
     fetchUsers()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.limit, filters.subscription_status, filters.sort_by, filters.sort_order, filters.search])
+  }, [pagination.page, filters.subscription_status, filters.sort_by, filters.sort_order, filters.search])
 
   // Handle search with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Trigger refetch by updating filters
-      const fetchData = async () => {
-        if (pagination.page !== 1) {
-          setPagination(prev => ({ ...prev, page: 1 }))
-        }
-      }
-      fetchData()
+      // Reset to page 1 when search changes
+      setPagination(prev => ({ ...prev, page: 1 }))
     }, 500)
 
     return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search])
+
+  // Reset to page 1 when subscription filter changes
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [filters.subscription_status])
 
   const getSubscriptionBadge = (status) => {
     switch (status) {
@@ -178,13 +182,64 @@ export default function UsersManagement() {
   }
 
   const handlePageChange = (newPage) => {
+    console.log('Changing to page:', newPage)
     setPagination(prev => ({ ...prev, page: newPage }))
     setSelectedUsers([])
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleLimitChange = (newLimit) => {
-    setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
-    setSelectedUsers([])
+  const refreshUsers = async () => {
+    setIsLoading(true)
+
+    try {
+      const params = new URLSearchParams()
+      params.set('page', pagination.page.toString())
+      params.set('limit', '10')
+
+      if (filters.search) params.set('search', filters.search)
+      if (filters.subscription_status && filters.subscription_status !== 'all') {
+        params.set('subscription_status', filters.subscription_status)
+      }
+      if (filters.sort_by) params.set('sort_by', filters.sort_by)
+      if (filters.sort_order) params.set('sort_order', filters.sort_order)
+
+      const response = await fetch(`/api/admin/users?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users')
+      }
+
+      const data = await response.json()
+      setUsers(data.users || [])
+      setStats(data.stats || {
+        total_users: 0,
+        barakah_access_users: 0,
+        quran_lite_users: 0,
+        deenhub_pro_users: 0,
+        free_users: 0,
+        new_users_this_month: 0,
+        active_users_last_30_days: 0
+      })
+
+      console.log(data)
+
+      // FIX: Use stats.total_users as fallback if pagination.total is 0
+      if (data.pagination) {
+        const actualTotal = data.pagination.total || data.stats?.total_users || 0
+        const totalPages = Math.ceil(actualTotal / 10)
+        
+        setPagination(prev => ({
+          ...prev,
+          total: actualTotal,
+          totalPages: totalPages
+        }))
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      setUsers([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isLoading && pagination.page === 1) {
@@ -238,7 +293,7 @@ export default function UsersManagement() {
               {stats.deenhub_pro_users.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {((stats.deenhub_pro_users / stats.total_users) * 100).toFixed(1)}% of total
+              {stats.total_users > 0 ? ((stats.deenhub_pro_users / stats.total_users) * 100).toFixed(1) : '0.0'}% of total
             </p>
           </CardContent>
         </Card>
@@ -255,7 +310,7 @@ export default function UsersManagement() {
               {stats.barakah_access_users.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {((stats.barakah_access_users / stats.total_users) * 100).toFixed(1)}% of total
+              {stats.total_users > 0 ? ((stats.barakah_access_users / stats.total_users) * 100).toFixed(1) : '0.0'}% of total
             </p>
           </CardContent>
         </Card>
@@ -272,7 +327,7 @@ export default function UsersManagement() {
               {stats.quran_lite_users.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {((stats.quran_lite_users / stats.total_users) * 100).toFixed(1)}% of total
+              {stats.total_users > 0 ? ((stats.quran_lite_users / stats.total_users) * 100).toFixed(1) : '0.0'}% of total
             </p>
           </CardContent>
         </Card>
@@ -289,7 +344,7 @@ export default function UsersManagement() {
               {stats.free_users.toLocaleString()}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {((stats.free_users / stats.total_users) * 100).toFixed(1)}% of total
+              {stats.total_users > 0 ? ((stats.free_users / stats.total_users) * 100).toFixed(1) : '0.0'}% of total
             </p>
           </CardContent>
         </Card>
@@ -350,7 +405,7 @@ export default function UsersManagement() {
             <div>
               <CardTitle className="text-xl">Users Directory</CardTitle>
               <CardDescription className="mt-1">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} users
+                Showing {pagination.total > 0 ? ((pagination.page - 1) * 10) + 1 : 0} to {Math.min(pagination.page * 10, pagination.total)} of {pagination.total} users
               </CardDescription>
             </div>
           </div>
@@ -378,7 +433,7 @@ export default function UsersManagement() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
-                  [...Array(5)].map((_, i) => (
+                  [...Array(10)].map((_, i) => (
                     <tr key={i}>
                       <td colSpan={7} className="px-4 py-4">
                         <div className="h-16 bg-gray-100 rounded animate-pulse"></div>
@@ -475,60 +530,7 @@ export default function UsersManagement() {
                             const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u)
                             setUsers(updatedUsers)
                           }}
-                          onDelete={() => {
-                            // After deletion, refetch users to update the UI
-                            const fetchUsers = async () => {
-                              setIsLoading(true)
-
-                              try {
-                                const params = new URLSearchParams()
-                                params.set('page', pagination.page.toString())
-                                params.set('limit', pagination.limit.toString())
-
-                                if (filters.search) params.set('search', filters.search)
-                                if (filters.subscription_status && filters.subscription_status !== 'all') {
-                                  params.set('subscription_status', filters.subscription_status)
-                                }
-                                if (filters.sort_by) params.set('sort_by', filters.sort_by)
-                                if (filters.sort_order) params.set('sort_order', filters.sort_order)
-
-                                const response = await fetch(`/api/admin/users?${params.toString()}`)
-
-                                if (!response.ok) {
-                                  throw new Error('Failed to fetch users')
-                                }
-
-                                const data = await response.json()
-                                setUsers(data.users || [])
-                                setStats(data.stats || {
-                                  total_users: 0,
-                                  barakah_access_users: 0,
-                                  quran_lite_users: 0,
-                                  deenhub_pro_users: 0,
-                                  free_users: 0,
-                                  new_users_this_month: 0,
-                                  active_users_last_30_days: 0
-                                })
-
-                                // Set pagination data from API response
-                                if (data.pagination) {
-                                  setPagination({
-                                    page: data.pagination.page || 1,
-                                    limit: data.pagination.limit || 10,
-                                    total: data.pagination.total || 0,
-                                    totalPages: data.pagination.totalPages || Math.ceil((data.pagination.total || 0) / (data.pagination.limit || 10))
-                                  })
-                                }
-                              } catch (error) {
-                                console.error('Error fetching users:', error)
-                                setUsers([])
-                              } finally {
-                                setIsLoading(false)
-                              }
-                            }
-
-                            fetchUsers()
-                          }}
+                          onDelete={refreshUsers}
                         />
                       </td>
                     </tr>
@@ -539,20 +541,10 @@ export default function UsersManagement() {
           </div>
 
           {/* Pagination Controls */}
-          {pagination.total > pagination.limit && (
+          {pagination.total > 10 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Rows per page:</span>
-                <select
-                  value={pagination.limit}
-                  onChange={(e) => handleLimitChange(Number(e.target.value))}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+              <div className="text-sm text-gray-600">
+                Page {pagination.page} of {pagination.totalPages || 1} (10 items per page)
               </div>
 
               <div className="flex items-center gap-2">
@@ -562,6 +554,7 @@ export default function UsersManagement() {
                   onClick={() => handlePageChange(1)}
                   disabled={pagination.page === 1}
                   className="h-9 w-9 p-0"
+                  title="First page"
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -571,14 +564,16 @@ export default function UsersManagement() {
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
                   className="h-9 w-9 p-0"
+                  title="Previous page"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
 
                 <div className="flex items-center gap-1">
-                  {[...Array(Math.min(5, pagination.totalPages || Math.ceil(pagination.total / pagination.limit)))].map((_, i) => {
-                    const totalPages = pagination.totalPages || Math.ceil(pagination.total / pagination.limit)
+                  {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
+                    const totalPages = pagination.totalPages
                     let pageNum;
+                    
                     if (totalPages <= 5) {
                       pageNum = i + 1;
                     } else if (pagination.page <= 3) {
@@ -607,24 +602,26 @@ export default function UsersManagement() {
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === (pagination.totalPages || Math.ceil(pagination.total / pagination.limit))}
+                  disabled={pagination.page === pagination.totalPages}
                   className="h-9 w-9 p-0"
+                  title="Next page"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(pagination.totalPages || Math.ceil(pagination.total / pagination.limit))}
-                  disabled={pagination.page === (pagination.totalPages || Math.ceil(pagination.total / pagination.limit))}
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={pagination.page === pagination.totalPages}
                   className="h-9 w-9 p-0"
+                  title="Last page"
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
 
               <div className="text-sm text-gray-600">
-                Page {pagination.page} of {pagination.totalPages || Math.ceil(pagination.total / pagination.limit) || 1}
+                Showing {pagination.total > 0 ? ((pagination.page - 1) * 10) + 1 : 0}-{Math.min(pagination.page * 10, pagination.total)} of {pagination.total}
               </div>
             </div>
           )}
@@ -637,7 +634,7 @@ export default function UsersManagement() {
         onClose={() => setShowAddDialog(false)}
         onSuccess={() => {
           setShowAddDialog(false)
-          window.location.reload()
+          refreshUsers()
         }}
       />
     </div>
@@ -699,7 +696,7 @@ export default function UsersManagement() {
 //   })
 //   const [pagination, setPagination] = useState({
 //     page: 1,
-//     limit: 100,
+//     limit: 10,
 //     total: 0,
 //     totalPages: 0
 //   })
